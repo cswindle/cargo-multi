@@ -80,7 +80,10 @@ fn main() {
     announce(&banner);
     let is_crate = |e: &DirEntry| e.path().join("Cargo.toml").exists();
     let display_path = |p: &String| println!("{}:", p);
-    let execute = |p: String| cargo_cmd.current_dir(p).output().ok();
+    let execute = |p: String| {
+        let process = cargo_cmd.current_dir(p).spawn();
+        process.unwrap().wait();
+    };
 
     // First check if there is a Cargo.toml file with a workspace section in.
     let mut workspace_members = match File::open("Cargo.toml") {
@@ -129,17 +132,18 @@ fn main() {
         Some(members) => {
             members.into_iter()
                 .inspect(display_path)
-                .filter_map(execute)
-                .map(report_output)
-                .filter(|x| !x.success())
+                .map(execute)
+                //.map(report_output)
+                //.filter(|x| !x.success())
                 .collect::<Vec<_>>()
         }
         None => Vec::new(),
     };
-
+/*
     // If there are any failed commands, return the error code of the
     // first of them.
     if failed_commands.len() > 0 {
         exit(failed_commands[0].code().unwrap());
     }
+*/
 }
